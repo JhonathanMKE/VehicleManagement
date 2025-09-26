@@ -11,6 +11,12 @@ public class DatabaseContext : DbContext
         _configurationAppSettings = confiration;
     }
     public DbSet<Administrator> Administrators { get; set; } = default!;
+    //aqui é onde se faz o set do ORM que relaciona a tabela com a classe.
+    //após a criação da classe e com o mapeamento executado, podemos executar
+    //o migration do EntityFramework 
+    // COMMAND: dotnet ef migrations add {migration_title}
+    // COMMAND: dotnet ef databae update
+    public DbSet<Vehicles> Vehicles { get; set; } = default!; 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
