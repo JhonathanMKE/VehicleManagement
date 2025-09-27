@@ -42,7 +42,7 @@ namespace Domain.Services
             _Context.SaveChanges();
         }
 
-        public List<Vehicles>? ListAll(int page = 1, string? name = null, string? vendor = null)
+        public List<Vehicles>? ListAll(int? page = 1, string? name = null, string? vendor = null)
         {
             var query = _Context.Vehicles.AsQueryable();
             if (!string.IsNullOrEmpty(name))
@@ -52,8 +52,11 @@ namespace Domain.Services
             }
 
             int ItensPerPage = 10;
-
-            query = query.Skip((page-1)*ItensPerPage).Take(ItensPerPage); //paginação dos resultados.
+            if (page != null)
+            {
+                query = query.Skip(((int)page-1)*ItensPerPage).Take(ItensPerPage); //paginação dos resultados.   
+            }
+            
 
             return query.ToList();
         }
