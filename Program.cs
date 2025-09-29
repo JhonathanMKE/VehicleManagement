@@ -6,6 +6,7 @@ using Domain.Services;
 using Infrastructure.Database;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Domain.Enums;
 
 #region Builder
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,18 @@ app.MapPost("/login", ([FromBody] LoginDTO loginDTO, IadministratorService admin
 #region Veiculos
 app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehicleService) =>
 {
+    var validation = new ValidationError();
+
+    if (string.IsNullOrEmpty(vehicleDTO.Name)) validation.Mensagem.Add("The name cannot be empty");
+    if (string.IsNullOrEmpty(vehicleDTO.Vendor)) validation.Mensagem.Add("The Vendor cannot be empty");
+    if (vehicleDTO.FabricationYear < 1900) validation.Mensagem.Add("The Fabrication year must be greater than 1900");
+
+    if (validation.Mensagem.Count > 0)
+    {
+        return Results.BadRequest(validation);
+    }
+
+
     var v = new Vehicles
     {
         Name = vehicleDTO.Name,
@@ -118,7 +131,65 @@ app.MapDelete("/vehicles/{id}", ([FromRoute] int id, IVehicleService vehicleServ
 .WithTags("Vehicles");
 #endregion
 
+#region Administrators
+app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, IadministratorService administratorservice) =>
+{
+    var validation = new ValidationError();
 
+    if(string.IsNullOrEmpty(administratorDTO.Email)) validation.Mensagem.Add("Email cannot be empty.");
+    if(string.IsNullOrEmpty(administratorDTO.Profile.ToString())) validation.Mensagem.Add("Email cannot be empty.");
+    if(string.IsNullOrEmpty(administratorDTO.Password)) validation.Mensagem.Add("Email cannot be empty.");
+
+    if (validation.Mensagem.Count > 0) return Results.BadRequest(validation);
+
+    var admin = new Administrator
+    {
+        Email = administratorDTO.Email,
+        Profile = administratorDTO.Profile.ToString(),
+        Password = administratorDTO.Password
+    };
+
+    administratorservice.Include(admin);
+
+    return Results.Created($"/administrators/{admin.Id}", admin);
+
+}
+)
+.WithTags("Administrators");
+
+app.MapGet("/administrators", ([FromQuery] int? page, IadministratorService administratorService) =>
+{
+    var admModel = new List<AdministratorModel>();
+    var adms = administratorService.ListAll(page);
+
+    foreach (var adm in adms)
+    {
+        admModel.Add(new AdministratorModel
+        {
+            Id = adm.Id,
+            Email = adm.Email,
+            Profile = (Profile)Enum.Parse(typeof(Profile), adm.Profile) 
+        });
+    }
+
+    return Results.Ok(admModel);
+})
+.WithTags("Administrators");
+
+app.MapGet("/administrators/{id}", ([FromRoute] int id, IadministratorService administratorService) =>
+{
+    var adm = administratorService.FindById(id);
+    if (adm == null) return Results.NotFound();
+    var admModel = new AdministratorModel
+    {
+        Id = adm.Id,
+        Email = adm.Email,
+        Profile = (Profile)Enum.Parse(typeof(Profile), adm.Profile)
+    };
+    return Results.Ok(admModel);
+})
+.WithTags("Administrators");
+#endregion
 
 app.Run();
 
