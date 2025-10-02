@@ -182,7 +182,7 @@ app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehi
 }
 )
 .RequireAuthorization()
-.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm,Editor"})
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "adm,editor"})
 .WithTags("Vehicles");
 
 app.MapGet("/vehicles", ([FromQuery] int? page, IVehicleService vehicleService) =>
@@ -224,7 +224,7 @@ app.MapDelete("/vehicles/{id}", ([FromRoute] int id, IVehicleService vehicleServ
     return Results.NoContent();
 })
 .RequireAuthorization()
-.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "adm"})
 .WithTags("Vehicles");
 #endregion
 
@@ -253,7 +253,7 @@ app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, Ia
 }
 )
 .RequireAuthorization()
-.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "adm"})
 .WithTags("Administrators");
 
 app.MapGet("/administrators", ([FromQuery] int? page, IadministratorService administratorService) =>
@@ -274,7 +274,7 @@ app.MapGet("/administrators", ([FromQuery] int? page, IadministratorService admi
     return Results.Ok(admModel);
 })
 .RequireAuthorization()
-.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "adm"})
 .WithTags("Administrators");
 
 app.MapGet("/administrators/{id}", ([FromRoute] int id, IadministratorService administratorService) =>
@@ -290,7 +290,7 @@ app.MapGet("/administrators/{id}", ([FromRoute] int id, IadministratorService ad
     return Results.Ok(admModel);
 })
 .RequireAuthorization()
-.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "adm"})
 .WithTags("Administrators");
 #endregion
 
