@@ -12,7 +12,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.ComponentModel.DataAnnotations; //?? usando na criação do token JWT
+using System.ComponentModel.DataAnnotations;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authorization; //?? usando na criação do token JWT
 
 #region Builder
 var builder = WebApplication.CreateBuilder(args);
@@ -32,7 +34,9 @@ builder.Services.AddAuthentication(option =>
     option.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+        ValidateIssuer = false,
+        ValidateAudience = false
     };
 });
 
@@ -41,7 +45,33 @@ builder.Services.AddAuthorization();
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Please insert your JWT following this way: Bearer {your_personal_token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string [] { }
+        }
+    });
+});
 builder.Services.AddScoped<IadministratorService, AdministratorService>();  //?? O esse escopo faz.
 builder.Services.AddScoped<IVehicleService, VehiclesService>();
 var conn = builder.Configuration.GetConnectionString("mysql") ?? throw new InvalidOperationException("Connection String not found.");
@@ -83,6 +113,7 @@ string GenerateJwtToken(Administrator adm)
     var claims = new List<Claim>()
     {
         new Claim(ClaimTypes.Email, adm.Email),
+        new Claim(ClaimTypes.Role, adm.Profile),
         new Claim("Profile", adm.Profile)
     };
 
@@ -116,6 +147,7 @@ app.MapPost("/login", ([FromBody] LoginDTO loginDTO, IadministratorService admin
     }
 }
 )
+.AllowAnonymous()
 .WithName("Login")
 .WithOpenApi()
 .WithTags("Login");
@@ -149,7 +181,9 @@ app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehi
 
 }
 )
-.RequireAuthorization().WithTags("Vehicles");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm,Editor"})
+.WithTags("Vehicles");
 
 app.MapGet("/vehicles", ([FromQuery] int? page, IVehicleService vehicleService) =>
 {
@@ -177,7 +211,9 @@ app.MapPut("/vehicles/{id}", ([FromRoute] int id, VehicleDTO vehicleDTO, IVehicl
 
     return Results.Ok(vehicle);
 })
-.RequireAuthorization().WithTags("Vehicles");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.WithTags("Vehicles");
 
 app.MapDelete("/vehicles/{id}", ([FromRoute] int id, IVehicleService vehicleService) =>
 {
@@ -187,7 +223,9 @@ app.MapDelete("/vehicles/{id}", ([FromRoute] int id, IVehicleService vehicleServ
 
     return Results.NoContent();
 })
-.RequireAuthorization().WithTags("Vehicles");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.WithTags("Vehicles");
 #endregion
 
 #region Administrators
@@ -195,9 +233,9 @@ app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, Ia
 {
     var validation = new ValidationError();
 
-    if(string.IsNullOrEmpty(administratorDTO.Email)) validation.Mensagem.Add("Email cannot be empty.");
-    if(string.IsNullOrEmpty(administratorDTO.Profile.ToString())) validation.Mensagem.Add("Email cannot be empty.");
-    if(string.IsNullOrEmpty(administratorDTO.Password)) validation.Mensagem.Add("Email cannot be empty.");
+    if (string.IsNullOrEmpty(administratorDTO.Email)) validation.Mensagem.Add("Email cannot be empty.");
+    if (string.IsNullOrEmpty(administratorDTO.Profile.ToString())) validation.Mensagem.Add("Email cannot be empty.");
+    if (string.IsNullOrEmpty(administratorDTO.Password)) validation.Mensagem.Add("Email cannot be empty.");
 
     if (validation.Mensagem.Count > 0) return Results.BadRequest(validation);
 
@@ -214,7 +252,9 @@ app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, Ia
 
 }
 )
-.RequireAuthorization().WithTags("Administrators");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.WithTags("Administrators");
 
 app.MapGet("/administrators", ([FromQuery] int? page, IadministratorService administratorService) =>
 {
@@ -233,7 +273,9 @@ app.MapGet("/administrators", ([FromQuery] int? page, IadministratorService admi
 
     return Results.Ok(admModel);
 })
-.RequireAuthorization().WithTags("Administrators");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.WithTags("Administrators");
 
 app.MapGet("/administrators/{id}", ([FromRoute] int id, IadministratorService administratorService) =>
 {
@@ -247,7 +289,9 @@ app.MapGet("/administrators/{id}", ([FromRoute] int id, IadministratorService ad
     };
     return Results.Ok(admModel);
 })
-.RequireAuthorization().WithTags("Administrators");
+.RequireAuthorization()
+.RequireAuthorization(new AuthorizeAttribute{ Roles = "Adm"})
+.WithTags("Administrators");
 #endregion
 
 app.Run();
