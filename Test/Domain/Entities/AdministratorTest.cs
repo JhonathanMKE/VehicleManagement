@@ -3,7 +3,7 @@ using Domain.Entities; //importing namespace from API
 namespace Test.Domain;
 
 [TestClass]
-public class UnitTest1
+public class AdministratorTest
 {
     [TestMethod]
     public void TestGetsSetsProps()
